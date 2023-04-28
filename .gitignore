@@ -10,8 +10,10 @@ __pycache__/
 .ipynb_checkpoints
 
 # debugging files
+personal_experiments.ipynb
 
 # image files
 *.png
 *.jpg
 *.jpeg
+
