@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from Local_Block2_5 import CNN_to_Tensors, Qlocal, LocalClassifier
 
 class LocalModule:
     """
@@ -15,20 +15,21 @@ class LocalModule:
 
     def __init__(self, dropout, token_dim, num_classes=1):
         super().__init__()
-
-        self.head = nn.Sequential(
-            nn.Flatten(start_dim=1),
-            nn.Linear(token_dim, token_dim // 2),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout) if dropout > 0 else nn.Identity(),
-            nn.Linear(token_dim // 2, token_dim // 4),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout) if dropout > 0 else nn.Identity(),
-            nn.Linear(token_dim // 4, num_classes),
-        )
+        self.Local_CNN_1 = CNN_to_Tensors()
+        self.Local_CNN_2 = CNN_to_Tensors()
+        self.Local_CNN_3 = CNN_to_Tensors()
+        self.local_cls = LocalClassifier(token_dim)
+        self.Q_Local = Qlocal(token_dim)
 
     def forward(self, local_ROIs):
-        eyes, nose, mouth = local_ROIs
+        eye_1, eye_2, nose, mouth = local_ROIs
+        t1 = self.Local_CNN_1(eye_1)
+        t2 = self.Local_CNN_1(eye_2)
+        t3 = self.Local_CNN_2(nose)
+        t4 = self.Local_CNN_3(mouth)
 
-        raise NotImplementedError
-        return local_Q, local_prediction
+        local_Q = self.Q_Local([t1, t2, t3, t4])
+        local_pred = self.local_cls(t1, t2, t3, t4)
+
+
+        return local_Q, local_pred

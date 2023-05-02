@@ -13,7 +13,7 @@ class FusionModule(nn.Module):
         2. global_tokens (= K = V): from global module, shape: (batch_size, num_tokens, token_dim)
 
     Output:
-        1. global_prediction: shape: (batch_size, 1)
+        1. fusion_prediction: shape: (batch_size, 1)
 
     """
 

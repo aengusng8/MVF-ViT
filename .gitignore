@@ -16,4 +16,6 @@ personal_experiments.ipynb
 *.png
 *.jpg
 *.jpeg
+*.pth
+
 

@@ -72,7 +72,7 @@ class GlobalModule(nn.Module):
 
         self.mlp_head = nn.Sequential(nn.LayerNorm(dim), nn.Linear(dim, num_classes))
 
-    def forward(self, img, get_global_tokens=False):
+    def forward(self, img, get_global_tokens=True):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
