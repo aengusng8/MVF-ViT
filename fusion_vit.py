@@ -14,7 +14,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-!pip install einops
+
 
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
@@ -168,8 +168,7 @@ class vit(nn.Module):
         x = self.to_latent(x)
         return self.mlp_head(x)
 
-from google.colab import drive
-drive.mount('/content/drive')
+
 
 import os
 from PIL import Image
@@ -229,7 +228,7 @@ dataset = CustomDataset(image_files, labels, transform=transform)
 # Create a DataLoader for your custom dataset
 dataloader = DataLoader(dataset, batch_size=100, shuffle=True, num_workers=2)
 
-!pip install -U scikit-learn
+
 
 from sklearn.model_selection import train_test_split
 

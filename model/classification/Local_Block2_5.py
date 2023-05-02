@@ -16,31 +16,6 @@ class CNN_to_Tensors(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, start_dim=1)
         return x
-
-
-model = CNN_to_Tensors()
-
-input_tensor = torch.randn(1, 3, 900, 800) # batch_size , channel , width , length
-                                           # anh thay bằng tensor của ảnh cropped nhé 
-
-
-output_tensor = model(input_tensor)
-
-# Check the shape of the output tensor
-print(output_tensor.shape)  # Output: torch.Size([1, 1024])
-
-
-
-
-
-
-
-
-
-
-
-
-########################################################################
 #Đây là classifier
 import torch
 import torch.nn as nn
@@ -103,14 +78,6 @@ class LocalClassifier(nn.Module):
         output = self.sigmoid(output)
         return output
 
-D = 1024
-model = LocalClassifier(D)
-
-# Define the loss function
-criterion = nn.BCELoss()
-
-# Define the optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 
 
@@ -141,53 +108,82 @@ class Qlocal(nn.Module):
         x = self.fc(x)
         x = x.view(-1, self.token_dim)
         return x
-token_dim = 1024
-Q_gen = Qlocal(token_dim)
 
-# Create input tensors
-t1 = torch.randn(token_dim)
-t2 = torch.randn(token_dim)
-t3 = torch.randn(token_dim)
-t4 = torch.randn(token_dim)
+
+if __name__ == "__main__":
+
+    D = 1024
+    model = LocalClassifier(D)
+    
+    # Define the loss function
+    criterion = nn.BCELoss()
+    
+    # Define the optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    token_dim = 1024
+    Q_gen = Qlocal(token_dim)
+
+    # Create input tensors
+    t1 = torch.randn(token_dim)
+    t2 = torch.randn(token_dim)
+    t3 = torch.randn(token_dim)
+    t4 = torch.randn(token_dim)
 
 # Extract features
-Q = Q_gen([t1, t2, t3, t4])
-print(Q.shape) # Should output (16, 1024)
+    Q = Q_gen([t1, t2, t3, t4])
+    print(Q.shape) # Should output (16, 1024)
+    model = CNN_to_Tensors()
+
+    input_tensor = torch.randn(1, 3, 91, 224) # batch_size , channel , width , length
+                                               # anh thay bằng tensor của ảnh cropped nhé 
+
+
+    output_tensor = model(input_tensor)
+
+    # Check the shape of the output tensor
+    print(output_tensor.shape)  # Output: torch.Size([1, 1024])
+
+
+
+
 
 ########################################################################
-# Test cho classifier : 
-# Generate some sample data
-N = 1000
-D = 1024
-x1 = torch.randn(N, D)
-x2 = torch.randn(N, D)
-x3 = torch.randn(N, D)
-x4 = torch.randn(N, D)
-y = torch.randint(0, 2, (N, 1)).float()
 
-# Split the data into train and test sets
-x1_train, x1_test = x1[:800], x1[800:]
-x2_train, x2_test = x2[:800], x2[800:]
-x3_train, x3_test = x3[:800], x3[800:]
-x4_train, x4_test = x4[:800], x4[800:]
-y_train, y_test = y[:800], y[800:]
 
-# Train the model
-epochs = 100
-for epoch in range(epochs):
-    optimizer.zero_grad()
-    y_pred = model(x1_train, x2_train, x3_train, x4_train)
-    loss = criterion(y_pred, y_train)
-    loss.backward()
-    optimizer.step()
+########################################################################
+    # Test cho classifier : 
+    # Generate some sample data
+    N = 1000
+    D = 1024
+    x1 = torch.randn(N, D)
+    x2 = torch.randn(N, D)
+    x3 = torch.randn(N, D)
+    x4 = torch.randn(N, D)
+    y = torch.randint(0, 2, (N, 1)).float()
 
-# Evaluate the model
-with torch.no_grad():
-    y_pred = model(x1_test, x2_test, x3_test, x4_test)
-    loss = criterion(y_pred, y_test)
-    accuracy = ((y_pred > 0.5) == y_test).sum().item() / len(y_test)
+    # Split the data into train and test sets
+    x1_train, x1_test = x1[:800], x1[800:]
+    x2_train, x2_test = x2[:800], x2[800:]
+    x3_train, x3_test = x3[:800], x3[800:]
+    x4_train, x4_test = x4[:800], x4[800:]
+    y_train, y_test = y[:800], y[800:]
 
-print('Accuracy:', accuracy)
+    # Train the model
+    epochs = 100
+    for epoch in range(epochs):
+        optimizer.zero_grad()
+        y_pred = model(x1_train, x2_train, x3_train, x4_train)
+        loss = criterion(y_pred, y_train)
+        loss.backward()
+        optimizer.step()
+
+    # Evaluate the model
+    with torch.no_grad():
+        y_pred = model(x1_test, x2_test, x3_test, x4_test)
+        loss = criterion(y_pred, y_test)
+        accuracy = ((y_pred > 0.5) == y_test).sum().item() / len(y_test)
+
+    print('Accuracy:', accuracy)
 
 
 

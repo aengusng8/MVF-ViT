@@ -1,12 +1,19 @@
 import cv2, os
 import sys
+import inspect
 sys.path.insert(0, 'FaceBoxesV2')
 sys.path.insert(0, '..')
+# sys.path.append('C:/Users\\RedmiBook\\HUST\\Documents\\Studying\\VT_DSAI\\Project_2\\sleepy-vit\\model')
 import numpy as np
 import pickle
 import importlib
 from math import floor
-from faceboxes_detector import *
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+print(parentdir)
+sys.path.insert(0, parentdir) 
+# import model
+from FaceBoxesV2.faceboxes_detector import *
 from collections import OrderedDict
 import time
 
@@ -43,16 +50,16 @@ print("path data", data_name)
 config_path = '.experiments.{}.{}'.format(data_name, experiment_name)
 image_file = sys.argv[1]
 print("path img", image_file)
-
-my_config = importlib.import_module(config_path, package='PIPNet')
+sys.path.append('model')
+my_config = importlib.import_module(config_path, package='roi_cropping')
 Config = getattr(my_config, 'Config')
 cfg = Config()
 cfg.experiment_name = experiment_name
 cfg.data_name = data_name
 
-save_dir = os.path.join('./snapshots', cfg.data_name, cfg.experiment_name)
+save_dir = os.path.join('model\\roi_cropping\\snapshots', cfg.data_name, cfg.experiment_name)
 
-meanface_indices, reverse_index1, reverse_index2, max_len = get_meanface(os.path.join('data', cfg.data_name, 'meanface.txt'), cfg.num_nb)
+meanface_indices, reverse_index1, reverse_index2, max_len = get_meanface(os.path.join('model\\roi_cropping\\data', cfg.data_name, 'meanface.txt'), cfg.num_nb)
 
 if cfg.backbone == 'resnet18':
     resnet18 = models.resnet18(pretrained=cfg.pretrained)
@@ -90,7 +97,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
 preprocess = transforms.Compose([transforms.Resize((cfg.input_size, cfg.input_size)), transforms.ToTensor(), normalize])
 
 def demo_image(image_file, net, preprocess, input_size, net_stride, num_nb, use_gpu, device):
-    detector = FaceBoxesDetector('FaceBoxes', 'FaceBoxesV2/weights/FaceBoxesV2.pth', use_gpu, device)
+    detector = FaceBoxesDetector('FaceBoxes', 'model\\roi_cropping\\FaceBoxesV2\\weights\\FaceBoxesV2.pth', use_gpu, device)
     my_thresh = 0.6
     det_box_scale = 1.2
 
@@ -163,9 +170,9 @@ def demo_image(image_file, net, preprocess, input_size, net_stride, num_nb, use_
           roi = clone2[y-5:y + h+5, x-5:x + w+5]
           roi = imutils.resize(roi, width=250, inter=cv2.INTER_CUBIC)
           # cv2.rectangle(clone2, (x, y), (x+w, y+h), (0, 0, 255), 2)
-          file_name = 'images/out/'+str(name)+'.jpg'
+          file_name = 'model\\roi_cropping\\images\\'+str(name)+'.jpg'
           cv2.imwrite(file_name, roi)
-    cv2.imwrite('images/out/out.jpg', image)
+    cv2.imwrite('model\\roi_cropping\\images/out.jpg', image)
     # cv2.imwrite('images/out2.jpg', clone)
     # print("landmark: ", len(l), l)
     # cv2.imshow('1', image)
