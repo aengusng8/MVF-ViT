@@ -82,14 +82,14 @@ class GlobalModule(nn.Module):
         x = self.dropout(x)
 
         x = self.transformer(x)
-        global_tokens = x[:, 1:, :]
+        global_tokens, cls_tokens = x[:, 1:, :], x[:, 0, :]
 
         x = x.mean(dim=1) if self.pool == "mean" else x[:, 0]
         x = self.to_latent(x)
         global_prediction = self.mlp_head(x)
 
         if get_global_tokens:
-            return global_tokens, global_prediction
+            return global_tokens, cls_tokens, global_prediction
         else:
             return global_prediction
 
