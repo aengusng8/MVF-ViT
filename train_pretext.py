@@ -1,7 +1,16 @@
 import torch
+from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.data import (
+    Dataset,
+    DataLoader,
+)
+import torchvision.transforms as transforms
 
-from model.classification.global_module import GlobalModule
-from model.classification.mae import MAE
+
+from .model.classification.global_module import GlobalModule
+from .model.masked_autoencoders.mae import MAE
+from .model.masked_autoencoders.masked_patch_prediction import MPP
+from .data.dataset import ClassificationDataset
 
 
 def main(config):
@@ -17,25 +26,36 @@ def main(config):
         emb_dropout=0.1,
     )
 
-    mae = MAE(
-        encoder=global_module,
-        masking_ratio=0.75,  # the paper recommended 75% masked patches
-        decoder_dim=512,  # paper showed good results with just 512
-        decoder_depth=6,  # anywhere from 1 to 8
+    # masked autoencoders: masked patch prediction
+    mpp_trainer = MPP(
+        transformer=global_module,
+        patch_size=32,
+        dim=1024,
+        mask_prob=0.15,  # probability of using token in masked prediction task
+        random_patch_prob=0.30,  # probability of randomly replacing a token being used for mpp
+        replace_prob=0.50,  # probability of replacing a token being used for mpp with the mask token
     )
 
-    # TODO: add dataloader
-    dataset = None
-    dataloader = None
+    # dataloader
+    dataset = ClassificationDataset(
+        csv_file="power.csv", root_dir="test123", transform=transforms.ToTensor()
+    )
+    train_loader = DataLoader(dataset, batch_size=32)
 
-    for epoch in range(config["n_epochs"]):
-        for batch_idx, (img, _) in enumerate(dataloader):
-            loss = mae(img)
+    # optimizer
+    opt = torch.optim.Adam(mpp_trainer.parameters(), lr=3e-4)
+
+    for epoch in range(100):
+        for images, _ in train_loader:
+            loss = mpp_trainer(images)
+            opt.zero_grad()
             loss.backward()
-            print("self-supervised loss (reconstruction loss) ", loss.item())
+            opt.step()
 
-    # save your improved vision transformer
-    torch.save(global_module.state_dict(), "./mae-vit-epoch-{}.pt".format(epoch))
+        print(f"epoch {epoch}, loss {loss.item()}")
+
+    # save your improved network
+    torch.save(global_module.state_dict(), f"./pretrained-net-{epoch}.pth")
 
 
 if __name__ == "__main__":
