@@ -5,7 +5,7 @@ import torch.optim as optim  # For all Optimization algorithms, SGD, Adam, etc.
 from torch.utils.data import (
     Dataset,
     DataLoader,
-)  # Gives easier dataset managment and creates mini batches
+)
 import numpy as np
 import torch.nn as nn  # All neural network modules, nn.Linear, nn.Conv2d, BatchNorm, Loss functions
 from .data.dataset import ClassificationDataset
