@@ -6,7 +6,7 @@ MVF-ViT is a deep learning model for visual recognition tasks that combines glob
 The model comprises three modules: a global module, a local module, and a fusion module.
 
 ### Global module
-The global module predicts using global information only and outputs both the global prediction and the global features. This module is pre-trained using the self-supervision training method called Masked Image Modeling [(MIM) (masked image modeling)](https://arxiv.org/abs/2111.06377).
+The global module predicts using global information only and outputs both the global prediction and the global features. This module is pre-trained using the self-supervision training method called  [Masked Image Modeling (MIM)](https://arxiv.org/abs/2111.06377).
 1. MIM self-supervision training
 - Input: the masked image 
 - Ouput: the reconstructed image
