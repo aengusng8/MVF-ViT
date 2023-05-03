@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from skimage import io
 
+
 class ClassificationDataset(Dataset):
     def __init__(self, csv_file, root_dir, transform=None):
         self.annotations = pd.read_csv(csv_file)

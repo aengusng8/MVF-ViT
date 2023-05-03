@@ -1,8 +1,9 @@
 import numpy as np
 
+
 def split_indices(n, val_pct=0.1, seed=99):
     # Determine size of validation set
-    n_val = int(val_pct*n)
+    n_val = int(val_pct * n)
     # Set the random seed
     np.random.seed(seed)
     # Create permutation of 0 to n-1

@@ -1,4 +1,4 @@
-import torch.nn.functional as F 
+import torch.nn.functional as F
 import torch
 import torch.nn as nn  # All neural network modules, nn.Linear, nn.Conv2d, BatchNorm, Loss functions
 import torch.optim as optim  # For all Optimization algorithms, SGD, Adam, etc.
@@ -10,11 +10,10 @@ import numpy as np
 import torch.nn as nn  # All neural network modules, nn.Linear, nn.Conv2d, BatchNorm, Loss functions
 from .data.dataset import ClassificationDataset
 from .model.classification.classification_model import *
-import torchvision.transforms as transforms 
+import torchvision.transforms as transforms
 from tqdm import tqdm
 from torch.utils.data.sampler import SubsetRandomSampler
 from .data.utils import split_indices
-
 
 
 # Set device
@@ -59,6 +58,8 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 print(len(train_set))
 print(len(test_set))
+
+
 # Train Network
 def loss_batch(model, loss_func, xb, yb, opt=None, metric=None):
     # Generate predictions
@@ -68,7 +69,7 @@ def loss_batch(model, loss_func, xb, yb, opt=None, metric=None):
     loss_lc = loss_func(local_pred, yb)
     loss_gb = loss_func(global_pred, yb)
     loss_fs = loss_func(fusion_pred, yb)
-    loss = a*(loss_lc + loss_gb) + b*loss_fs
+    loss = a * (loss_lc + loss_gb) + b * loss_fs
 
     if opt is not None:
         # Compute gradients
@@ -81,14 +82,22 @@ def loss_batch(model, loss_func, xb, yb, opt=None, metric=None):
     if metric is not None:
         # Compute the metric
         metric_result = metric(fusion_pred, yb)
-    return loss.item(), loss_lc.item(), loss_gb.item(), loss_fs.item(), len(xb), metric_result
+    return (
+        loss.item(),
+        loss_lc.item(),
+        loss_gb.item(),
+        loss_fs.item(),
+        len(xb),
+        metric_result,
+    )
 
 
 def evaluate(model, loss_func, valid_dl, metric=None):
     with torch.no_grad():
         # Pass each batch through the model
-        results = [loss_batch(model, loss_func, xb, yb, metric=metric)
-                   for xb, yb in valid_dl]
+        results = [
+            loss_batch(model, loss_func, xb, yb, metric=metric) for xb, yb in valid_dl
+        ]
         # Separate losses, counts and metrics
         losses, nums, metrics = zip(*results)
         # Total size of the data set
@@ -106,20 +115,26 @@ def accuracy(outputs, labels):
     return torch.tensor(torch.sum(preds == labels).item() / len(preds))
 
 
-def fit(epochs, model, loss_func, train_dl, valid_dl, opt_fn=None, lr=None, metric=None):
+def fit(
+    epochs, model, loss_func, train_dl, valid_dl, opt_fn=None, lr=None, metric=None
+):
     train_losses, val_losses, val_metrics = [], [], []
     torch.cuda.empty_cache()
     # Instantiate the optimizer
     if opt_fn is None:
         opt_fn = torch.optim.SGD
-    opt = opt_fn(model.parameters(), lr=lr,weight_decay=1e-4)
-    sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=opt, mode='min', patience= 8, min_lr =1e-4, verbose=True)
+    opt = opt_fn(model.parameters(), lr=lr, weight_decay=1e-4)
+    sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer=opt, mode="min", patience=8, min_lr=1e-4, verbose=True
+    )
 
     for epoch in range(epochs):
         # Training
         model.train()
         for xb, yb in train_dl:
-            train_loss, loss_lc, loss_gb, loss_fs,_,_ = loss_batch(model, loss_func, xb, yb, opt)
+            train_loss, loss_lc, loss_gb, loss_fs, _, _ = loss_batch(
+                model, loss_func, xb, yb, opt
+            )
 
         # Evaluation
         model.eval()
@@ -127,16 +142,22 @@ def fit(epochs, model, loss_func, train_dl, valid_dl, opt_fn=None, lr=None, metr
         val_loss, total, val_metric = result
         sched.step(val_loss)
         # Record the loss and metric
-        all_loss = [ train_loss, loss_lc, loss_gb, loss_fs]
+        all_loss = [train_loss, loss_lc, loss_gb, loss_fs]
         train_losses.append(all_loss)
         val_losses.append(val_loss)
         val_metrics.append(val_metric)
-        
+
         # Print progress
         if metric is None:
-            print('Epoch [{} / {}], train_loss: {:4f}, val_loss:{:4f}'
-                  .format(epoch + 1, epochs, train_loss, val_loss))
+            print(
+                "Epoch [{} / {}], train_loss: {:4f}, val_loss:{:4f}".format(
+                    epoch + 1, epochs, train_loss, val_loss
+                )
+            )
         else:
-            print('Epoch [{} / {}], train_loss: {:4f}, val_loss:{:4f}, val_{}: {:4f}'
-                  .format(epoch + 1, epochs, train_loss, val_loss, metric.__name__, val_metric))
+            print(
+                "Epoch [{} / {}], train_loss: {:4f}, val_loss:{:4f}, val_{}: {:4f}".format(
+                    epoch + 1, epochs, train_loss, val_loss, metric.__name__, val_metric
+                )
+            )
     return train_losses, val_losses, val_metrics

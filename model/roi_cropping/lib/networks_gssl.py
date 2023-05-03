@@ -5,6 +5,7 @@ import torchvision.models as models
 import numpy as np
 import time
 
+
 # net_stride output_size
 # 128        2x2
 # 64         4x4
@@ -27,12 +28,16 @@ class Pip_resnet18(nn.Module):
         self.layer4 = resnet.layer4
 
         self.my_maxpool = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-        
+
         self.cls_layer = nn.Conv2d(512, num_lms, kernel_size=1, stride=1, padding=0)
         self.x_layer = nn.Conv2d(512, num_lms, kernel_size=1, stride=1, padding=0)
         self.y_layer = nn.Conv2d(512, num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_x_layer = nn.Conv2d(512, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_y_layer = nn.Conv2d(512, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
+        self.nb_x_layer = nn.Conv2d(
+            512, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
+        self.nb_y_layer = nn.Conv2d(
+            512, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
 
         # init
         nn.init.normal_(self.cls_layer.weight, std=0.001)
@@ -75,6 +80,6 @@ class Pip_resnet18(nn.Module):
         cls3 = self.cls_layer(x)
         return cls1, cls2, cls3, offset_x, offset_y, nb_x, nb_y
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     pass
-    

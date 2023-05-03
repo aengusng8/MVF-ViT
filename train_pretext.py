@@ -35,7 +35,7 @@ def main(config):
             print("self-supervised loss (reconstruction loss) ", loss.item())
 
     # save your improved vision transformer
-    torch.save(global_module.state_dict(), './mae-vit-epoch-{}.pt'.format(epoch))
+    torch.save(global_module.state_dict(), "./mae-vit-epoch-{}.pt".format(epoch))
 
 
 if __name__ == "__main__":

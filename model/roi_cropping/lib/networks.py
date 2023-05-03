@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torchvision.models as models
 import numpy as np
 
+
 # net_stride output_size
 # 128        2x2
 # 64         4x4
@@ -53,14 +54,18 @@ class Pip_resnet101(nn.Module):
         elif self.net_stride == 32:
             pass
         else:
-            print('No such net_stride!')
+            print("No such net_stride!")
             exit(0)
 
         self.cls_layer = nn.Conv2d(2048, num_lms, kernel_size=1, stride=1, padding=0)
         self.x_layer = nn.Conv2d(2048, num_lms, kernel_size=1, stride=1, padding=0)
         self.y_layer = nn.Conv2d(2048, num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_x_layer = nn.Conv2d(2048, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_y_layer = nn.Conv2d(2048, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
+        self.nb_x_layer = nn.Conv2d(
+            2048, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
+        self.nb_y_layer = nn.Conv2d(
+            2048, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
 
         nn.init.normal_(self.cls_layer.weight, std=0.001)
         if self.cls_layer.bias is not None:
@@ -104,6 +109,7 @@ class Pip_resnet101(nn.Module):
         x4 = self.nb_x_layer(x)
         x5 = self.nb_y_layer(x)
         return x1, x2, x3, x4, x5
+
 
 # net_stride output_size
 # 128        2x2
@@ -154,14 +160,18 @@ class Pip_resnet50(nn.Module):
         elif self.net_stride == 32:
             pass
         else:
-            print('No such net_stride!')
+            print("No such net_stride!")
             exit(0)
 
         self.cls_layer = nn.Conv2d(2048, num_lms, kernel_size=1, stride=1, padding=0)
         self.x_layer = nn.Conv2d(2048, num_lms, kernel_size=1, stride=1, padding=0)
         self.y_layer = nn.Conv2d(2048, num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_x_layer = nn.Conv2d(2048, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_y_layer = nn.Conv2d(2048, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
+        self.nb_x_layer = nn.Conv2d(
+            2048, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
+        self.nb_y_layer = nn.Conv2d(
+            2048, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
 
         nn.init.normal_(self.cls_layer.weight, std=0.001)
         if self.cls_layer.bias is not None:
@@ -205,6 +215,7 @@ class Pip_resnet50(nn.Module):
         x4 = self.nb_x_layer(x)
         x5 = self.nb_y_layer(x)
         return x1, x2, x3, x4, x5
+
 
 # net_stride output_size
 # 128        2x2
@@ -255,7 +266,9 @@ class Pip_resnet18(nn.Module):
         elif self.net_stride == 32:
             pass
         elif self.net_stride == 16:
-            self.deconv1 = nn.ConvTranspose2d(512, 512, kernel_size=4, stride=2, padding=1, bias=False)
+            self.deconv1 = nn.ConvTranspose2d(
+                512, 512, kernel_size=4, stride=2, padding=1, bias=False
+            )
             self.bn_deconv1 = nn.BatchNorm2d(512)
             nn.init.normal_(self.deconv1.weight, std=0.001)
             if self.deconv1.bias is not None:
@@ -263,14 +276,18 @@ class Pip_resnet18(nn.Module):
             nn.init.constant_(self.bn_deconv1.weight, 1)
             nn.init.constant_(self.bn_deconv1.bias, 0)
         else:
-            print('No such net_stride!')
+            print("No such net_stride!")
             exit(0)
 
         self.cls_layer = nn.Conv2d(512, num_lms, kernel_size=1, stride=1, padding=0)
         self.x_layer = nn.Conv2d(512, num_lms, kernel_size=1, stride=1, padding=0)
         self.y_layer = nn.Conv2d(512, num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_x_layer = nn.Conv2d(512, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_y_layer = nn.Conv2d(512, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
+        self.nb_x_layer = nn.Conv2d(
+            512, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
+        self.nb_y_layer = nn.Conv2d(
+            512, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
 
         nn.init.normal_(self.cls_layer.weight, std=0.001)
         if self.cls_layer.bias is not None:
@@ -317,6 +334,7 @@ class Pip_resnet18(nn.Module):
         x5 = self.nb_y_layer(x)
         return x1, x2, x3, x4, x5
 
+
 class Pip_mbnetv2(nn.Module):
     def __init__(self, mbnet, num_nb, num_lms=68, input_size=256, net_stride=32):
         super(Pip_mbnetv2, self).__init__()
@@ -330,8 +348,12 @@ class Pip_mbnetv2(nn.Module):
         self.cls_layer = nn.Conv2d(1280, num_lms, kernel_size=1, stride=1, padding=0)
         self.x_layer = nn.Conv2d(1280, num_lms, kernel_size=1, stride=1, padding=0)
         self.y_layer = nn.Conv2d(1280, num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_x_layer = nn.Conv2d(1280, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_y_layer = nn.Conv2d(1280, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
+        self.nb_x_layer = nn.Conv2d(
+            1280, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
+        self.nb_y_layer = nn.Conv2d(
+            1280, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
 
         nn.init.normal_(self.cls_layer.weight, std=0.001)
         if self.cls_layer.bias is not None:
@@ -362,6 +384,7 @@ class Pip_mbnetv2(nn.Module):
         x5 = self.nb_y_layer(x)
         return x1, x2, x3, x4, x5
 
+
 class Pip_mbnetv3(nn.Module):
     def __init__(self, mbnet, num_nb, num_lms=68, input_size=256, net_stride=32):
         super(Pip_mbnetv3, self).__init__()
@@ -376,8 +399,12 @@ class Pip_mbnetv3(nn.Module):
         self.cls_layer = nn.Conv2d(960, num_lms, kernel_size=1, stride=1, padding=0)
         self.x_layer = nn.Conv2d(960, num_lms, kernel_size=1, stride=1, padding=0)
         self.y_layer = nn.Conv2d(960, num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_x_layer = nn.Conv2d(960, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
-        self.nb_y_layer = nn.Conv2d(960, num_nb*num_lms, kernel_size=1, stride=1, padding=0)
+        self.nb_x_layer = nn.Conv2d(
+            960, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
+        self.nb_y_layer = nn.Conv2d(
+            960, num_nb * num_lms, kernel_size=1, stride=1, padding=0
+        )
 
         nn.init.normal_(self.cls_layer.weight, std=0.001)
         if self.cls_layer.bias is not None:
@@ -408,8 +435,7 @@ class Pip_mbnetv3(nn.Module):
         x4 = self.nb_x_layer(x)
         x5 = self.nb_y_layer(x)
         return x1, x2, x3, x4, x5
-    
-    
-if __name__ == '__main__':
-    pass
 
+
+if __name__ == "__main__":
+    pass

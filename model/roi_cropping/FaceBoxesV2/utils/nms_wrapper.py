@@ -5,9 +5,12 @@
 # Written by Ross Girshick
 # --------------------------------------------------------
 # import pyximport
-import pyximport; pyximport.install()
+import pyximport
+
+pyximport.install()
 
 from .nms.py_cpu_nms import py_cpu_nms
+
 
 def nms(dets, thresh):
     """Dispatch to either CPU or GPU NMS implementations."""

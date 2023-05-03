@@ -8,7 +8,6 @@ from vit import pair, Transformer
 from mae import MAE
 
 
-
 class GlobalModule(nn.Module):
     """
     Input:
@@ -109,7 +108,6 @@ if __name__ == "__main__":
             emb_dropout=0.1,
         )
 
-        
         images = torch.randn(8, 3, 112, 112)
 
         preds = global_module(images)
@@ -119,10 +117,10 @@ if __name__ == "__main__":
         print(sum(p.numel() for p in global_module.parameters() if p.requires_grad))
 
         mae = MAE(
-            encoder = global_module,
-            masking_ratio = 0.75,   # the paper recommended 75% masked patches
-            decoder_dim = 512,      # paper showed good results with just 512
-            decoder_depth = 6       # anywhere from 1 to 8
+            encoder=global_module,
+            masking_ratio=0.75,  # the paper recommended 75% masked patches
+            decoder_dim=512,  # paper showed good results with just 512
+            decoder_depth=6,  # anywhere from 1 to 8
         )
 
         loss = mae(images)

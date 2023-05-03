@@ -15,12 +15,13 @@ import torch.nn.functional as F
 from torch import nn
 
 
-
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
+
 def pair(t):
-  return t if isinstance(t, tuple) else (t,t)
+    return t if isinstance(t, tuple) else (t, t)
+
 
 from math import sqrt
 import torch
@@ -32,56 +33,60 @@ from einops.layers.torch import Rearrange
 
 # helpers
 
+
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
 
+
 # classes
+
 
 class PreNorm(nn.Module):
     def __init__(self, dim, fn):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
         self.fn = fn
+
     def forward(self, x, **kwargs):
         return self.fn(self.norm(x), **kwargs)
 
+
 class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout = 0.):
+    def __init__(self, dim, hidden_dim, dropout=0.0):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(dim, hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
+
     def forward(self, x):
         return self.net(x)
 
-class LSA(nn.Module):
-    def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
-        super().__init__()
-        inner_dim = dim_head *  heads
-        self.heads = heads
-        self.temperature = nn.Parameter(torch.log(torch.tensor(dim_head ** -0.5)))
 
-        self.attend = nn.Softmax(dim = -1)
+class LSA(nn.Module):
+    def __init__(self, dim, heads=8, dim_head=64, dropout=0.0):
+        super().__init__()
+        inner_dim = dim_head * heads
+        self.heads = heads
+        self.temperature = nn.Parameter(torch.log(torch.tensor(dim_head**-0.5)))
+
+        self.attend = nn.Softmax(dim=-1)
         self.dropout = nn.Dropout(dropout)
 
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias = False)
+        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
 
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
-        )
+        self.to_out = nn.Sequential(nn.Linear(inner_dim, dim), nn.Dropout(dropout))
 
     def forward(self, x):
-        qkv = self.to_qkv(x).chunk(3, dim = -1)
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), qkv)
+        qkv = self.to_qkv(x).chunk(3, dim=-1)
+        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=self.heads), qkv)
 
         dots = torch.matmul(q, k.transpose(-1, -2)) * self.temperature.exp()
 
-        mask = torch.eye(dots.shape[-1], device = dots.device, dtype = torch.bool)
+        mask = torch.eye(dots.shape[-1], device=dots.device, dtype=torch.bool)
         mask_value = -torch.finfo(dots.dtype).max
         dots = dots.masked_fill(mask, mask_value)
 
@@ -89,54 +94,87 @@ class LSA(nn.Module):
         attn = self.dropout(attn)
 
         out = torch.matmul(attn, v)
-        out = rearrange(out, 'b h n d -> b n (h d)')
+        out = rearrange(out, "b h n d -> b n (h d)")
         return self.to_out(out)
 
+
 class Transformer(nn.Module):
-    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
+    def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout=0.0):
         super().__init__()
         self.layers = nn.ModuleList([])
         for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim, LSA(dim, heads = heads, dim_head = dim_head, dropout = dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout = dropout))
-            ]))
+            self.layers.append(
+                nn.ModuleList(
+                    [
+                        PreNorm(
+                            dim,
+                            LSA(dim, heads=heads, dim_head=dim_head, dropout=dropout),
+                        ),
+                        PreNorm(dim, FeedForward(dim, mlp_dim, dropout=dropout)),
+                    ]
+                )
+            )
+
     def forward(self, x):
         for attn, ff in self.layers:
             x = attn(x) + x
             x = ff(x) + x
         return x
 
+
 class SPT(nn.Module):
-    def __init__(self, *, dim, patch_size, channels = 3):
+    def __init__(self, *, dim, patch_size, channels=3):
         super().__init__()
         patch_dim = patch_size * patch_size * 5 * channels
 
         self.to_patch_tokens = nn.Sequential(
-            Rearrange('b c (h p1) (w p2) -> b (h w) (p1 p2 c)', p1 = patch_size, p2 = patch_size),
+            Rearrange(
+                "b c (h p1) (w p2) -> b (h w) (p1 p2 c)", p1=patch_size, p2=patch_size
+            ),
             nn.LayerNorm(patch_dim),
-            nn.Linear(patch_dim, dim)
+            nn.Linear(patch_dim, dim),
         )
 
     def forward(self, x):
         shifts = ((1, -1, 0, 0), (-1, 1, 0, 0), (0, 0, 1, -1), (0, 0, -1, 1))
         shifted_x = list(map(lambda shift: F.pad(x, shift), shifts))
-        x_with_shifts = torch.cat((x, *shifted_x), dim = 1)
+        x_with_shifts = torch.cat((x, *shifted_x), dim=1)
         return self.to_patch_tokens(x_with_shifts)
 
+
 class vit(nn.Module):
-    def __init__(self, *, image_size, patch_size, num_classes, dim, depth, heads, mlp_dim, pool = 'cls', channels = 3, dim_head = 64, dropout = 0., emb_dropout = 0.):
+    def __init__(
+        self,
+        *,
+        image_size,
+        patch_size,
+        num_classes,
+        dim,
+        depth,
+        heads,
+        mlp_dim,
+        pool="cls",
+        channels=3,
+        dim_head=64,
+        dropout=0.0,
+        emb_dropout=0.0,
+    ):
         super().__init__()
         image_height, image_width = pair(image_size)
         patch_height, patch_width = pair(patch_size)
 
-        assert image_height % patch_height == 0 and image_width % patch_width == 0, 'Image dimensions must be divisible by the patch size.'
+        assert (
+            image_height % patch_height == 0 and image_width % patch_width == 0
+        ), "Image dimensions must be divisible by the patch size."
 
         num_patches = (image_height // patch_height) * (image_width // patch_width)
         patch_dim = channels * patch_height * patch_width
-        assert pool in {'cls', 'mean'}, 'pool type must be either cls (cls token) or mean (mean pooling)'
+        assert pool in {
+            "cls",
+            "mean",
+        }, "pool type must be either cls (cls token) or mean (mean pooling)"
 
-        self.to_patch_embedding = SPT(dim = dim, patch_size = patch_size, channels = channels)
+        self.to_patch_embedding = SPT(dim=dim, patch_size=patch_size, channels=channels)
 
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches + 1, dim))
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim))
@@ -147,32 +185,29 @@ class vit(nn.Module):
         self.pool = pool
         self.to_latent = nn.Identity()
 
-        self.mlp_head = nn.Sequential(
-            nn.LayerNorm(dim),
-            nn.Linear(dim, num_classes)
-        )
+        self.mlp_head = nn.Sequential(nn.LayerNorm(dim), nn.Linear(dim, num_classes))
 
     def forward(self, img):
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
 
-        cls_tokens = repeat(self.cls_token, '() n d -> b n d', b = b)
+        cls_tokens = repeat(self.cls_token, "() n d -> b n d", b=b)
         x = torch.cat((cls_tokens, x), dim=1)
-        x += self.pos_embedding[:, :(n + 1)]
+        x += self.pos_embedding[:, : (n + 1)]
         x = self.dropout(x)
 
         x = self.transformer(x)
 
-        x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
+        x = x.mean(dim=1) if self.pool == "mean" else x[:, 0]
 
         x = self.to_latent(x)
         return self.mlp_head(x)
 
 
-
 import os
 from PIL import Image
 from torch.utils.data import Dataset
+
 
 class CustomDataset(Dataset):
     def __init__(self, image_paths, labels, transform=None):
@@ -192,10 +227,16 @@ class CustomDataset(Dataset):
             image = self.transform(image)
 
         return image, label
+
+
 def get_image_paths_and_labels(folder1, folder2, label1=1, label2=0):
-    image_files1 = [os.path.join(folder1, f) for f in os.listdir(folder1) if f.endswith('.png')]  # Change this based on your image file extensions
-    image_files2 = [os.path.join(folder2, f) for f in os.listdir(folder2) if f.endswith('.png')]
-    
+    image_files1 = [
+        os.path.join(folder1, f) for f in os.listdir(folder1) if f.endswith(".png")
+    ]  # Change this based on your image file extensions
+    image_files2 = [
+        os.path.join(folder2, f) for f in os.listdir(folder2) if f.endswith(".png")
+    ]
+
     labels1 = [label1] * len(image_files1)
     labels2 = [label2] * len(image_files2)
 
@@ -204,19 +245,28 @@ def get_image_paths_and_labels(folder1, folder2, label1=1, label2=0):
 
     return image_files, labels
 
+
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
 # Define the data transformations
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Resize images to match the expected input size of the ViT model
-    transforms.ToTensor(),  # Convert PIL images to PyTorch tensors
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize the image tensors using the mean and std values from ImageNet
-])
+transform = transforms.Compose(
+    [
+        transforms.Resize(
+            (224, 224)
+        ),  # Resize images to match the expected input size of the ViT model
+        transforms.ToTensor(),  # Convert PIL images to PyTorch tensors
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+        ),  # Normalize the image tensors using the mean and std values from ImageNet
+    ]
+)
 
 # Set the paths to your two labeled folders of images
-folder1 = '/content/drive/MyDrive/Sleepy_Dataset/Driver_Drowsiness_Dataset_(DDD)/Drowsy'
-folder2 = '/content/drive/MyDrive/Sleepy_Dataset/Driver_Drowsiness_Dataset_(DDD)/Non Drowsy'
+folder1 = "/content/drive/MyDrive/Sleepy_Dataset/Driver_Drowsiness_Dataset_(DDD)/Drowsy"
+folder2 = (
+    "/content/drive/MyDrive/Sleepy_Dataset/Driver_Drowsiness_Dataset_(DDD)/Non Drowsy"
+)
 
 # Get the list of image file paths and labels
 image_files, labels = get_image_paths_and_labels(folder1, folder2)
@@ -229,21 +279,24 @@ dataset = CustomDataset(image_files, labels, transform=transform)
 dataloader = DataLoader(dataset, batch_size=100, shuffle=True, num_workers=2)
 
 
-
 from sklearn.model_selection import train_test_split
 
 # Set the paths to your two labeled folders of images
-folder1 = '/Driver_Drowsiness_Dataset_(DDD)/Drowsy'
-folder2 = '/Driver_Drowsiness_Dataset_(DDD)/Non Drowsy'
+folder1 = "/Driver_Drowsiness_Dataset_(DDD)/Drowsy"
+folder2 = "/Driver_Drowsiness_Dataset_(DDD)/Non Drowsy"
 
 # Get the list of image file paths and labels
 image_files, labels = get_image_paths_and_labels(folder1, folder2)
 
 # Split the dataset into train and test sets
-train_images, test_images, train_labels, test_labels = train_test_split(image_files, labels, test_size=0.2, random_state=42, stratify=labels)
+train_images, test_images, train_labels, test_labels = train_test_split(
+    image_files, labels, test_size=0.2, random_state=42, stratify=labels
+)
 
 # Split the train set further into train and validation sets
-train_images, val_images, train_labels, val_labels = train_test_split(train_images, train_labels, test_size=0.25, random_state=42, stratify=train_labels)
+train_images, val_images, train_labels, val_labels = train_test_split(
+    train_images, train_labels, test_size=0.25, random_state=42, stratify=train_labels
+)
 
 from torch.utils.data import DataLoader
 
@@ -261,7 +314,16 @@ train_labels[3000]
 
 # Instantiate the model
 
-model = vit(image_size=224, patch_size=16, num_classes=2, dim=128, depth=6, heads=4, mlp_dim=256, channels=3).cuda()
+model = vit(
+    image_size=224,
+    patch_size=16,
+    num_classes=2,
+    dim=128,
+    depth=6,
+    heads=4,
+    mlp_dim=256,
+    channels=3,
+).cuda()
 
 # Select loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -284,15 +346,17 @@ for epoch in range(num_epochs):
     # Calculate training loss
     train_loss /= len(train_loader)
 
-      # Validation
+    # Validation
     model.eval()
     validation_loss = 0.0
     with torch.no_grad():
-      for images, labels in val_loader:
-        images, labels = images.cuda(), labels.cuda()
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        validation_loss += loss.item()
+        for images, labels in val_loader:
+            images, labels = images.cuda(), labels.cuda()
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            validation_loss += loss.item()
     validation_loss /= len(validation_loss)
 
-    print(f'Epouch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Validation Loss: {validation_loss:.4f}')
+    print(
+        f"Epouch {epoch+1}/{num_epochs}, Train Loss: {train_loss:.4f}, Validation Loss: {validation_loss:.4f}"
+    )
